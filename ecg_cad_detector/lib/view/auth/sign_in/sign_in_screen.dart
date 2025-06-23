@@ -8,7 +8,7 @@ import '../../../navigation_bar.dart';
 import '../getx/checkbox.dart';
 import '../sign_up/sign_up _screen.dart';
 import '../widgets/custome_textfield.dart';
-import '../widgets/login_button.dart.dart';
+import '../widgets/login_button.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
