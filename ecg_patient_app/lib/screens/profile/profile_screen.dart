@@ -379,7 +379,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Text('Q: How accurate are the AI results?'),
                 Text('A: Our AI has high accuracy but should not replace professional medical advice.'),
                 SizedBox(height: 8),
-                Text('Q: Can I share reports with my doctor?'),
+                Text('Q: Can I share reports with my healthcare provider?'),
                 Text('A: Yes, you can download PDF reports and share them.'),
                 SizedBox(height: 16),
                 Text(
@@ -473,7 +473,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Text('• AI-powered analysis'),
                 Text('• Medical history tracking'),
                 Text('• PDF report generation'),
-                Text('• Doctor review requests'),
+                Text('• Healthcare provider consultations'),
                 Text('• Offline data caching'),
                 Text('• Push notifications'),
                 SizedBox(height: 16),

@@ -2,6 +2,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'dart:async';
 
@@ -41,34 +42,11 @@ class OfflineService {
         confidence REAL,
         heart_rate INTEGER,
         status TEXT,
-        doctor_reviewed INTEGER DEFAULT 0,
         notes TEXT,
         file_path TEXT,
         created_at TEXT,
         updated_at TEXT,
         synced INTEGER DEFAULT 0
-      )
-    ''');
-
-    // Doctor Reviews table
-    await db.execute('''
-      CREATE TABLE doctor_reviews (
-        id TEXT PRIMARY KEY,
-        report_id TEXT,
-        user_email TEXT NOT NULL,
-        request_date TEXT,
-        status TEXT,
-        priority TEXT,
-        assigned_doctor TEXT,
-        review_date TEXT,
-        doctor_notes TEXT,
-        recommendation TEXT,
-        urgency TEXT,
-        patient_symptoms TEXT,
-        created_at TEXT,
-        updated_at TEXT,
-        synced INTEGER DEFAULT 0,
-        FOREIGN KEY (report_id) REFERENCES ecg_reports (id)
       )
     ''');
 
@@ -191,63 +169,6 @@ class OfflineService {
     _attemptSync();
   }
 
-  // Doctor Reviews CRUD operations
-  Future<String> saveDoctorReview(Map<String, dynamic> review) async {
-    final db = await database;
-    final prefs = await SharedPreferences.getInstance();
-    final userEmail = prefs.getString('current_user_email') ?? '';
-    
-    final reviewData = {
-      ...review,
-      'user_email': userEmail,
-      'created_at': DateTime.now().toIso8601String(),
-      'updated_at': DateTime.now().toIso8601String(),
-      'synced': 0,
-    };
-    
-    await db.insert('doctor_reviews', reviewData, conflictAlgorithm: ConflictAlgorithm.replace);
-    
-    await _addToSyncQueue('doctor_reviews', review['id'], 'INSERT', reviewData);
-    
-    _attemptSync();
-    
-    return review['id'];
-  }
-
-  Future<List<Map<String, dynamic>>> getDoctorReviews({String? userEmail}) async {
-    final db = await database;
-    final prefs = await SharedPreferences.getInstance();
-    final email = userEmail ?? prefs.getString('current_user_email') ?? '';
-    
-    return await db.query(
-      'doctor_reviews',
-      where: 'user_email = ?',
-      whereArgs: [email],
-      orderBy: 'created_at DESC',
-    );
-  }
-
-  Future<void> updateDoctorReview(String reviewId, Map<String, dynamic> updates) async {
-    final db = await database;
-    
-    final updateData = {
-      ...updates,
-      'updated_at': DateTime.now().toIso8601String(),
-      'synced': 0,
-    };
-    
-    await db.update(
-      'doctor_reviews',
-      updateData,
-      where: 'id = ?',
-      whereArgs: [reviewId],
-    );
-    
-    await _addToSyncQueue('doctor_reviews', reviewId, 'UPDATE', updateData);
-    
-    _attemptSync();
-  }
-
   // User Profile operations
   Future<void> saveUserProfile(Map<String, dynamic> profile) async {
     final db = await database;
@@ -352,7 +273,8 @@ class OfflineService {
       }
     } catch (e) {
       // Handle sync errors
-      print('Sync error: $e');
+      // Log sync error
+      debugPrint('Sync error: $e');
     }
   }
 
@@ -362,7 +284,8 @@ class OfflineService {
     
     // In a real app, this would make actual HTTP requests to your backend
     // For now, we'll just simulate success
-    print('Syncing ${syncItem['table_name']} - ${syncItem['action']} - ${syncItem['record_id']}');
+    // Log sync operation
+      debugPrint('Syncing ${syncItem['table_name']} - ${syncItem['action']} - ${syncItem['record_id']}');
   }
 
   Future<void> _markRecordSynced(String tableName, String recordId) async {
@@ -415,7 +338,6 @@ class OfflineService {
     final db = await database;
     
     await db.delete('ecg_reports', where: 'user_email = ?', whereArgs: [userEmail]);
-    await db.delete('doctor_reviews', where: 'user_email = ?', whereArgs: [userEmail]);
     await db.delete('user_profile', where: 'email = ?', whereArgs: [userEmail]);
   }
 
@@ -426,17 +348,12 @@ class OfflineService {
       await db.rawQuery('SELECT COUNT(*) FROM ecg_reports WHERE user_email = ?', [userEmail]),
     ) ?? 0;
     
-    final reviewsCount = Sqflite.firstIntValue(
-      await db.rawQuery('SELECT COUNT(*) FROM doctor_reviews WHERE user_email = ?', [userEmail]),
-    ) ?? 0;
-    
     final pendingSyncCount = Sqflite.firstIntValue(
       await db.rawQuery('SELECT COUNT(*) FROM sync_queue'),
     ) ?? 0;
     
     return {
       'reports': reportsCount,
-      'reviews': reviewsCount,
       'pendingSync': pendingSyncCount,
     };
   }

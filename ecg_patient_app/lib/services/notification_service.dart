@@ -4,7 +4,6 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/material.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'dart:async';
-import 'dart:math';
 import 'dart:convert';
 
 class NotificationService {
@@ -18,7 +17,6 @@ class NotificationService {
 
   // Notification channels
   static const String _reportChannelId = 'ecg_reports';
-  static const String _doctorChannelId = 'doctor_feedback';
   static const String _systemChannelId = 'system_updates';
   static const String _reminderChannelId = 'reminders';
 
@@ -59,7 +57,8 @@ class NotificationService {
     final status = await Permission.notification.request();
     
     if (status.isDenied) {
-      print('Notification permission denied');
+      // Log notification permission denied
+      debugPrint('Notification permission denied');
     }
   }
 
@@ -70,16 +69,6 @@ class NotificationService {
       'ECG Reports',
       description: 'Notifications for ECG analysis results',
       importance: Importance.high,
-      enableVibration: true,
-      playSound: true,
-    );
-
-    // Doctor Feedback channel
-    const AndroidNotificationChannel doctorChannel = AndroidNotificationChannel(
-      _doctorChannelId,
-      'Doctor Feedback',
-      description: 'Notifications for doctor reviews and feedback',
-      importance: Importance.max,
       enableVibration: true,
       playSound: true,
     );
@@ -110,10 +99,6 @@ class NotificationService {
     
     await _notifications
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(doctorChannel);
-    
-    await _notifications
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(systemChannel);
     
     await _notifications
@@ -125,7 +110,7 @@ class NotificationService {
     final payload = response.payload;
     if (payload != null) {
       // Handle notification tap based on payload
-      print('Notification tapped with payload: $payload');
+      debugPrint('Notification tapped with payload: $payload');
       // In a real app, you would navigate to specific screens based on the payload
     }
   }
@@ -183,13 +168,13 @@ class NotificationService {
 
     final id = _generateNotificationId();
     const title = '⚠️ Abnormal ECG Detected';
-    final body = 'Abnormal pattern detected: $classification. Please consult your doctor.';
+    final body = 'Abnormal pattern detected: $classification. Please consult your healthcare provider.';
     
     await _notifications.show(
       id,
       title,
       body,
-      NotificationDetails(
+      const NotificationDetails(
         android: AndroidNotificationDetails(
           _reportChannelId,
           'ECG Reports',
@@ -197,11 +182,11 @@ class NotificationService {
           importance: Importance.max,
           priority: Priority.max,
           icon: '@mipmap/ic_launcher',
-          color: const Color(0xFFFF5722), // Red color for alerts
+          color: Color(0xFFFF5722), // Red color for alerts
           ongoing: true,
           autoCancel: false,
         ),
-        iOS: const DarwinNotificationDetails(
+        iOS: DarwinNotificationDetails(
           presentAlert: true,
           presentBadge: true,
           presentSound: true,
@@ -221,93 +206,6 @@ class NotificationService {
     });
   }
 
-  // Doctor Review Notifications
-  Future<void> showDoctorReviewAvailable({
-    required String reviewId,
-    required String doctorName,
-  }) async {
-    if (!await _areNotificationsEnabled()) return;
-
-    final id = _generateNotificationId();
-    const title = '👨‍⚕️ Doctor Review Available';
-    final body = 'Dr. $doctorName has reviewed your ECG. Tap to view feedback.';
-    
-    await _notifications.show(
-      id,
-      title,
-      body,
-      NotificationDetails(
-        android: AndroidNotificationDetails(
-          _doctorChannelId,
-          'Doctor Feedback',
-          channelDescription: 'Doctor review notifications',
-          importance: Importance.high,
-          priority: Priority.high,
-          icon: '@mipmap/ic_launcher',
-          color: const Color(0xFF2196F3), // Blue color
-        ),
-        iOS: const DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        ),
-      ),
-      payload: 'doctor_review:$reviewId',
-    );
-
-    await _saveNotificationHistory({
-      'id': id,
-      'type': 'doctor_review',
-      'title': title,
-      'body': body,
-      'payload': 'doctor_review:$reviewId',
-      'timestamp': DateTime.now().toIso8601String(),
-    });
-  }
-
-  Future<void> showReviewRequestAccepted({
-    required String reviewId,
-    required String doctorName,
-  }) async {
-    if (!await _areNotificationsEnabled()) return;
-
-    final id = _generateNotificationId();
-    const title = '✅ Review Request Accepted';
-    final body = 'Dr. $doctorName will review your ECG within 24-48 hours.';
-    
-    await _notifications.show(
-      id,
-      title,
-      body,
-      NotificationDetails(
-        android: AndroidNotificationDetails(
-          _doctorChannelId,
-          'Doctor Feedback',
-          channelDescription: 'Review status updates',
-          importance: Importance.defaultImportance,
-          priority: Priority.defaultPriority,
-          icon: '@mipmap/ic_launcher',
-          color: const Color(0xFF4CAF50), // Green color
-        ),
-        iOS: const DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        ),
-      ),
-      payload: 'review_accepted:$reviewId',
-    );
-
-    await _saveNotificationHistory({
-      'id': id,
-      'type': 'review_accepted',
-      'title': title,
-      'body': body,
-      'payload': 'review_accepted:$reviewId',
-      'timestamp': DateTime.now().toIso8601String(),
-    });
-  }
-
   // System Notifications
   Future<void> showAppUpdate({
     required String version,
@@ -316,14 +214,14 @@ class NotificationService {
     if (!await _areNotificationsEnabled()) return;
 
     final id = _generateNotificationId();
-    final title = '🔄 App Update Available';
+    const title = '🔄 App Update Available';
     final body = 'Version $version is available with new features: $features';
     
     await _notifications.show(
       id,
       title,
       body,
-      NotificationDetails(
+      const NotificationDetails(
         android: AndroidNotificationDetails(
           _systemChannelId,
           'System Updates',
@@ -331,9 +229,9 @@ class NotificationService {
           importance: Importance.defaultImportance,
           priority: Priority.defaultPriority,
           icon: '@mipmap/ic_launcher',
-          color: const Color(0xFF9C27B0), // Purple color
+          color: Color(0xFF9C27B0), // Purple color
         ),
-        iOS: const DarwinNotificationDetails(
+        iOS: DarwinNotificationDetails(
           presentAlert: true,
           presentBadge: true,
           presentSound: false,
@@ -363,7 +261,7 @@ class NotificationService {
       id,
       title,
       body,
-      NotificationDetails(
+      const NotificationDetails(
         android: AndroidNotificationDetails(
           _systemChannelId,
           'System Updates',
@@ -371,9 +269,9 @@ class NotificationService {
           importance: Importance.low,
           priority: Priority.low,
           icon: '@mipmap/ic_launcher',
-          color: const Color(0xFF607D8B), // Blue grey color
+          color: Color(0xFF607D8B), // Blue grey color
         ),
-        iOS: const DarwinNotificationDetails(
+        iOS: DarwinNotificationDetails(
           presentAlert: false,
           presentBadge: false,
           presentSound: false,
@@ -408,7 +306,7 @@ class NotificationService {
       title,
       body,
       tz.TZDateTime.from(scheduledDate, tz.local),
-      NotificationDetails(
+      const NotificationDetails(
         android: AndroidNotificationDetails(
           _reminderChannelId,
           'Health Reminders',
@@ -416,9 +314,9 @@ class NotificationService {
           importance: Importance.high,
           priority: Priority.high,
           icon: '@mipmap/ic_launcher',
-          color: const Color(0xFFFF9800), // Orange color
+          color: Color(0xFFFF9800), // Orange color
         ),
-        iOS: const DarwinNotificationDetails(
+        iOS: DarwinNotificationDetails(
           presentAlert: true,
           presentBadge: true,
           presentSound: true,
@@ -454,7 +352,7 @@ class NotificationService {
       id,
       title,
       body,
-      NotificationDetails(
+      const NotificationDetails(
         android: AndroidNotificationDetails(
           _reminderChannelId,
           'Health Reminders',
@@ -462,9 +360,9 @@ class NotificationService {
           importance: Importance.high,
           priority: Priority.high,
           icon: '@mipmap/ic_launcher',
-          color: const Color(0xFF4CAF50), // Green color
+          color: Color(0xFF4CAF50), // Green color
         ),
-        iOS: const DarwinNotificationDetails(
+        iOS: DarwinNotificationDetails(
           presentAlert: true,
           presentBadge: true,
           presentSound: true,

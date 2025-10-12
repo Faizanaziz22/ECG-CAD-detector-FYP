@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../home/home_screen.dart';
+import '../../services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -55,53 +55,52 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _isLoading = true;
     });
 
-    // Simulate API call delay
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      final result = await AuthService.instance.register(
+        name: _nameController.text,
+        email: _emailController.text,
+        password: _passwordController.text,
+        phone: _phoneController.text.isNotEmpty ? _phoneController.text : null,
+        dateOfBirth: _dobController.text.isNotEmpty ? _dobController.text : null,
+      );
 
-    final prefs = await SharedPreferences.getInstance();
-    
-    // Check if user already exists
-    final existingEmail = prefs.getString('user_email');
-    if (existingEmail == _emailController.text) {
+      if (mounted) {
+        if (result.success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result.message ?? 'Registration successful!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result.message ?? 'Registration failed'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('User with this email already exists'),
+          SnackBar(
+            content: Text('Registration failed: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
       }
-      setState(() {
-        _isLoading = false;
-      });
-      return;
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
-
-    // Save user data
-    await prefs.setString('user_name', _nameController.text);
-    await prefs.setString('user_email', _emailController.text);
-    await prefs.setString('user_password', _passwordController.text);
-    await prefs.setString('user_phone', _phoneController.text);
-    await prefs.setString('user_dob', _dobController.text);
-    await prefs.setBool('isLoggedIn', true);
-    await prefs.setString('current_user_email', _emailController.text);
-    
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Registration successful!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
-    }
-
-    setState(() {
-      _isLoading = false;
-    });
   }
 
   @override

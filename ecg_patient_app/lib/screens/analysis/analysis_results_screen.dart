@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import 'dart:math';
 
 class AnalysisResultsScreen extends StatefulWidget {
@@ -14,7 +13,7 @@ class _AnalysisResultsScreenState extends State<AnalysisResultsScreen> {
   Map<String, dynamic>? _latestAnalysis;
   List<Map<String, dynamic>> _allResults = [];
   bool _isLoading = true;
-  bool _requestingReview = false;
+  final bool _requestingReview = false;
 
   @override
   void initState() {
@@ -84,34 +83,8 @@ class _AnalysisResultsScreenState extends State<AnalysisResultsScreen> {
       'confidence': (Random().nextDouble() * 0.3 + 0.7),
       'heartRate': Random().nextInt(40) + 60,
       'status': index == 0 ? 'completed' : (Random().nextBool() ? 'completed' : 'pending_review'),
-      'doctorReviewed': index > 2,
+      'doctorReviewed': false,
     });
-  }
-
-  Future<void> _requestDoctorReview() async {
-    setState(() {
-      _requestingReview = true;
-    });
-
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 2));
-
-    final prefs = await SharedPreferences.getInstance();
-    final currentPending = prefs.getInt('pending_reviews') ?? 0;
-    await prefs.setInt('pending_reviews', currentPending + 1);
-
-    setState(() {
-      _requestingReview = false;
-    });
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Doctor review requested successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    }
   }
 
   Color _getConfidenceColor(double confidence) {
@@ -131,7 +104,7 @@ class _AnalysisResultsScreenState extends State<AnalysisResultsScreen> {
       case 'Normal Sinus Rhythm':
         return 'Your heart rhythm appears normal. The electrical activity shows regular patterns within expected ranges.';
       case 'Atrial Fibrillation':
-        return 'Irregular heart rhythm detected. The upper chambers of your heart are beating irregularly. Consult your doctor.';
+        return 'Irregular heart rhythm detected. The upper chambers of your heart are beating irregularly. Consult your healthcare provider.';
       case 'Premature Ventricular Contractions':
         return 'Extra heartbeats detected. These are usually harmless but should be monitored by a healthcare professional.';
       case 'Sinus Bradycardia':
@@ -407,20 +380,6 @@ class _AnalysisResultsScreenState extends State<AnalysisResultsScreen> {
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _requestingReview ? null : _requestDoctorReview,
-                    icon: _requestingReview
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.medical_services),
-                    label: Text(_requestingReview ? 'Requesting...' : 'Request Doctor Review'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -506,22 +465,6 @@ class _AnalysisResultsScreenState extends State<AnalysisResultsScreen> {
                   'HR: $heartRate BPM',
                   style: const TextStyle(color: Colors.grey),
                 ),
-                const Spacer(),
-                if (doctorReviewed)
-                  const Row(
-                    children: [
-                      Icon(Icons.verified, color: Colors.green, size: 16),
-                      SizedBox(width: 4),
-                      Text(
-                        'Doctor Reviewed',
-                        style: TextStyle(
-                          color: Colors.green,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
               ],
             ),
           ],

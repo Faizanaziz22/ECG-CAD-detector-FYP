@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../home/home_screen.dart';
 import 'register_screen.dart';
+import '../home/home_screen.dart';
+import '../../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -31,41 +31,42 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
     });
 
-    // Simulate API call delay
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      final result = await AuthService.instance.login(
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
 
-    final prefs = await SharedPreferences.getInstance();
-    
-    // Check if user exists (simple check for demo)
-    final storedEmail = prefs.getString('user_email');
-    final storedPassword = prefs.getString('user_password');
-    
-    if (storedEmail == _emailController.text && 
-        storedPassword == _passwordController.text) {
-      // Login successful
-      await prefs.setBool('isLoggedIn', true);
-      await prefs.setString('current_user_email', _emailController.text);
-      
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
+        if (result.success) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result.message ?? 'Invalid email or password'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
-    } else {
-      // Login failed
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Invalid email or password'),
+          SnackBar(
+            content: Text('Login failed: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
       }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
-
-    setState(() {
-      _isLoading = false;
-    });
   }
 
   @override

@@ -57,7 +57,7 @@ class _MedicalHistoryScreenState extends State<MedicalHistoryScreen> {
         'confidence': (Random().nextDouble() * 0.3 + 0.7),
         'heartRate': Random().nextInt(40) + 60,
         'status': isNormal ? 'Normal' : (Random().nextBool() ? 'Abnormal' : 'Pending Review'),
-        'doctorReviewed': index > 5 ? Random().nextBool() : false,
+        'doctorReviewed': false,
         'notes': _generateNotes(classification),
       };
     });
@@ -535,22 +535,6 @@ class _MedicalHistoryScreenState extends State<MedicalHistoryScreen> {
                   'HR: ${record['heartRate']} BPM',
                   style: const TextStyle(fontSize: 12),
                 ),
-                const Spacer(),
-                if (record['doctorReviewed'])
-                  const Row(
-                    children: [
-                      Icon(Icons.verified, color: Colors.green, size: 14),
-                      SizedBox(width: 4),
-                      Text(
-                        'Doctor Reviewed',
-                        style: TextStyle(
-                          color: Colors.green,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
               ],
             ),
             const SizedBox(height: 12),
@@ -594,7 +578,7 @@ class _MedicalHistoryScreenState extends State<MedicalHistoryScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('ECG Report Details'),
+          title: const Text('ECG Report Details'),
           content: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -606,7 +590,6 @@ class _MedicalHistoryScreenState extends State<MedicalHistoryScreen> {
                 _buildDetailRow('Status', record['status']),
                 _buildDetailRow('Confidence', '${(record['confidence'] * 100).toStringAsFixed(1)}%'),
                 _buildDetailRow('Heart Rate', '${record['heartRate']} BPM'),
-                _buildDetailRow('Doctor Reviewed', record['doctorReviewed'] ? 'Yes' : 'No'),
                 const SizedBox(height: 12),
                 const Text(
                   'Clinical Notes:',

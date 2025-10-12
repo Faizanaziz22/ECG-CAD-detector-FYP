@@ -20,7 +20,7 @@ class _ECGUploadScreenState extends State<ECGUploadScreen>
   bool _isRecording = false;
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
-  List<double> _ecgData = [];
+  final List<double> _ecgData = [];
   int _recordingDuration = 0;
 
   @override
